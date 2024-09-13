@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub enum CurrentScreen {
     Main,
     Editing,
