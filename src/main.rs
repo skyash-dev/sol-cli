@@ -14,7 +14,7 @@ mod app;
 mod ui;
 use crate::{
     app::{App, CurrentScreen, CurrentlyEditing},
-    ui::ui,
+    ui::cli_ui,
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<bool> {
     loop {
-        terminal.draw(|f| ui(f, app))?;
+        terminal.draw(|f| cli_ui(f, app))?;
 
         if let Event::Key(key) = event::read()? {
             if key.kind == event::KeyEventKind::Release {

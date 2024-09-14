@@ -1,12 +1,55 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
     Frame,
 };
 
 use crate::app::{App, CurrentScreen, CurrentlyEditing};
+
+pub fn cli_ui(f: &mut Frame, app: &App) {
+    let size = f.area();
+
+    // Create the layout
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+        .split(size);
+
+    // Create the top bar
+    let top_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(chunks[0]);
+
+    // Network information
+    let network = Paragraph::new(Line::from(vec![
+        Span::styled("Network: ", Style::default().fg(Color::Gray)),
+        Span::styled(
+            "Mainnet",
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        ),
+    ]))
+    .block(Block::default().borders(Borders::ALL));
+
+    // Balance information
+    let balance = Paragraph::new(Line::from(vec![
+        Span::styled("Balance: ", Style::default().fg(Color::Gray)),
+        Span::styled(
+            "100 SOL",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
+    ]))
+    .block(Block::default().borders(Borders::ALL));
+
+    f.render_widget(network, top_chunks[0]);
+    f.render_widget(balance, top_chunks[1]);
+}
 
 pub fn ui(frame: &mut Frame, app: &App) {
     // Create the layout sections.
