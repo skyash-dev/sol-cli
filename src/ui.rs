@@ -35,20 +35,7 @@ pub fn cli_ui(f: &mut Frame, app: &App) {
     ]))
     .block(Block::default().borders(Borders::ALL));
 
-    // Balance information
-    let balance = Paragraph::new(Line::from(vec![
-        Span::styled("Balance: ", Style::default().fg(Color::Gray)),
-        Span::styled(
-            "100 SOL",
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
-        ),
-    ]))
-    .block(Block::default().borders(Borders::ALL));
-
     f.render_widget(network, top_chunks[0]);
-    f.render_widget(balance, top_chunks[1]);
 }
 
 pub fn ui(frame: &mut Frame, app: &App) {
