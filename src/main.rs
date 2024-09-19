@@ -10,6 +10,7 @@ use ratatui::{
     Terminal,
 };
 
+
 mod app;
 mod ui;
 use crate::{
@@ -18,6 +19,15 @@ use crate::{
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
+
+    
+//   let rpc_client = RpcClient::new("https://api.devnet.solana.com");
+//   let key = create_keypair();
+//   let balance = check_balance(&rpc_client, &key.pubkey());
+
+//   println!("{:?}", balance);
+
+
     // setup terminal
     enable_raw_mode()?;
     let mut stderr = io::stderr(); // This is a special case. Normally using stdout is fine
@@ -68,10 +78,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
                         app.current_screen = CurrentScreen::Exiting;
                     }
                     _ => {}
-                },
-                CurrentScreen::Exiting => match key.code {
-                    KeyCode::Char('y') => {
-                        return Ok(true);
+                }, CurrentScreen::Exiting => match key.code { KeyCode::Char('y') => { return Ok(true);
                     }
                     KeyCode::Char('n') | KeyCode::Char('q') => {
                         return Ok(false);
@@ -130,3 +137,4 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<
         }
     }
 }
+
