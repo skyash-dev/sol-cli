@@ -9,6 +9,7 @@ use solana_sdk::signature::{Keypair, Signer};
 pub enum CurrentScreen {
     Main,       // The main screen with the network, account, transactions, and actions tabs.
     CommandLog, // The screen displaying the command log.
+    Editing,
     Exiting,    // When the user is exiting the CLI.
 }
 
@@ -19,7 +20,7 @@ pub enum ActiveTab {
     Actions,    // Actions tab (for solana-keygen, config, etc.)
 }
 
-
+#[derive(Debug)]
 pub enum CurrentlyEditing {
     None,         // No editing happening
     PublicKey,    // Editing a public key
@@ -38,9 +39,6 @@ pub enum ActionType {
     Transfer,          // Command to transfer SOL
 }
 
-use std::collections::HashMap;
-use solana_client::rpc_client::RpcClient;
-
 pub struct App {
     pub command_input: String,          // Input for commands like 'balance', 'transfer', etc.
     pub keypair_file: String,           // Path for keypair file input
@@ -50,6 +48,8 @@ pub struct App {
     pub current_screen: CurrentScreen,
     pub currently_editing: Option<CurrentlyEditing>,
     pub rpc_client: RpcClient,
+
+    pub active_tab:ActiveTab,
 }
 
 impl App {
@@ -63,6 +63,7 @@ impl App {
             current_screen: CurrentScreen::Main,
             currently_editing: None,
             rpc_client: RpcClient::new("https://api.devnet.solana.com"), // Example: devnet URL
+            active_tab: ActiveTab::Network,
         }
     }
 
@@ -85,6 +86,7 @@ impl App {
                 CurrentlyEditing::KeypairFile => self.currently_editing = Some(CurrentlyEditing::Config),
                 CurrentlyEditing::Config => self.currently_editing = Some(CurrentlyEditing::SolAmount),
                 CurrentlyEditing::SolAmount => self.currently_editing = None,
+                CurrentlyEditing::None => println!("none"),
             };
         } else {
             self.currently_editing = Some(CurrentlyEditing::PublicKey);

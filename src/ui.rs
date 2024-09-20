@@ -1,209 +1,96 @@
 use ratatui::{
+    backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Line, Span, Text},
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+    text::{Span},
+    widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame,
 };
-
-use crate::app::{App, CurrentScreen, CurrentlyEditing};
+use crate::app::{App, CurrentScreen, ActiveTab};
 
 pub fn cli_ui(f: &mut Frame, app: &App) {
-    let size = f.area();
-
-    // Create the layout
+    // Create the main layout with horizontal split
     let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
-        .split(size);
-
-    // Create the top bar
-    let top_chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
-        .split(chunks[0]);
+        .constraints([Constraint::Percentage(30), Constraint::Percentage(70)].as_ref())
+        .split(f.area());
 
-    // Network information
-    let network = Paragraph::new(Line::from(vec![
-        Span::styled("Network: ", Style::default().fg(Color::Gray)),
-        Span::styled(
-            app.rpc_client,
-            Style::default()
-                .fg(Color::Green)
-                .add_modifier(Modifier::BOLD),
-        ),
-    ]))
-    .block(Block::default().borders(Borders::ALL));
+    // Left Sidebar with tabs
+    let left_panel = chunks[0];
+    draw_left_sidebar(f, app, left_panel);
 
-    f.render_widget(network, top_chunks[0]);
+    // Right Panel and Command Log
+    let right_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(80), Constraint::Length(3)].as_ref())
+        .split(chunks[1]);
+
+    let main_panel = right_chunks[0];
+    let command_log_block = right_chunks[1];
+
+    draw_main_panel(f, app, main_panel);
+    draw_command_log(f, app, command_log_block);
 }
 
-pub fn ui(frame: &mut Frame, app: &App) {
-    // Create the layout sections.
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Min(1),
-            Constraint::Length(3),
-        ])
-        .split(frame.area());
-
-    let title_block = Block::default()
-        .borders(Borders::ALL)
-        .style(Style::default());
-
-    let title = Paragraph::new(Text::styled(
-        "Create New Json",
-        Style::default().fg(Color::Green),
-    ))
-    .block(title_block);
-
-    frame.render_widget(title, chunks[0]);
-    let mut list_items = Vec::<ListItem>::new();
-
-    for key in app.pairs.keys() {
-        list_items.push(ListItem::new(Line::from(Span::styled(
-            format!("{: <25} : {}", key, app.pairs.get(key).unwrap()),
-            Style::default().fg(Color::Yellow),
-        ))));
-    }
-
-    let list = List::new(list_items);
-
-    frame.render_widget(list, chunks[1]);
-    let current_navigation_text = vec![
-        // The first half of the text
-        match app.current_screen {
-            CurrentScreen::Main => Span::styled("Normal Mode", Style::default().fg(Color::Green)),
-            CurrentScreen::Editing => {
-                Span::styled("Editing Mode", Style::default().fg(Color::Yellow))
-            }
-            CurrentScreen::Exiting => Span::styled("Exiting", Style::default().fg(Color::LightRed)),
-        }
-        .to_owned(),
-        // A white divider bar to separate the two sections
-        Span::styled(" | ", Style::default().fg(Color::White)),
-        // The final section of the text, with hints on what the user is editing
-        {
-            if let Some(editing) = &app.currently_editing {
-                match editing {
-                    CurrentlyEditing::Key => {
-                        Span::styled("Editing Json Key", Style::default().fg(Color::Green))
-                    }
-                    CurrentlyEditing::Value => {
-                        Span::styled("Editing Json Value", Style::default().fg(Color::LightGreen))
-                    }
-                }
-            } else {
-                Span::styled("Not Editing Anything", Style::default().fg(Color::DarkGray))
-            }
-        },
+// Draw the left sidebar (tabs and hint block)
+fn draw_left_sidebar(f: &mut Frame, app: &App, area: Rect) {
+    let tabs = vec![
+        ListItem::new("1. Network Connect"),
+        ListItem::new("2. Accounts"),
+        ListItem::new("3. Transactions"),
+        ListItem::new("4. Actions"),
     ];
 
-    let mode_footer = Paragraph::new(Line::from(current_navigation_text))
-        .block(Block::default().borders(Borders::ALL));
+    // Highlight the active tab
+    let tabs_list = List::new(tabs)
+        .block(Block::default().title("Tabs").borders(Borders::ALL))
+        .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+        .highlight_symbol(">");
 
-    let current_keys_hint = {
-        match app.current_screen {
-            CurrentScreen::Main => Span::styled(
-                "(q) to quit / (e) to make new pair",
-                Style::default().fg(Color::Red),
-            ),
-            CurrentScreen::Editing => Span::styled(
-                "(ESC) to cancel/(Tab) to switch boxes/enter to complete",
-                Style::default().fg(Color::Red),
-            ),
-            CurrentScreen::Exiting => Span::styled(
-                "(q) to quit / (e) to make new pair",
-                Style::default().fg(Color::Red),
-            ),
-        }
-    };
-
-    let key_notes_footer =
-        Paragraph::new(Line::from(current_keys_hint)).block(Block::default().borders(Borders::ALL));
-
-    let footer_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(chunks[2]);
-
-    frame.render_widget(mode_footer, footer_chunks[0]);
-    frame.render_widget(key_notes_footer, footer_chunks[1]);
-
-    if let Some(editing) = &app.currently_editing {
-        let popup_block = Block::default()
-            .title("Enter a new key-value pair")
-            .borders(Borders::NONE)
-            .style(Style::default().bg(Color::DarkGray));
-
-        let area = centered_rect(60, 25, frame.area());
-        frame.render_widget(popup_block, area);
-
-        let popup_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .margin(1)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(area);
-
-        let mut key_block = Block::default().title("Key").borders(Borders::ALL);
-        let mut value_block = Block::default().title("Value").borders(Borders::ALL);
-
-        let active_style = Style::default().bg(Color::LightYellow).fg(Color::Black);
-
-        match editing {
-            CurrentlyEditing::Key => key_block = key_block.style(active_style),
-            CurrentlyEditing::Value => value_block = value_block.style(active_style),
-        };
-
-        let key_text = Paragraph::new(app.key_input.clone()).block(key_block);
-        frame.render_widget(key_text, popup_chunks[0]);
-
-        let value_text = Paragraph::new(app.value_input.clone()).block(value_block);
-        frame.render_widget(value_text, popup_chunks[1]);
-    }
-
-    if let CurrentScreen::Exiting = app.current_screen {
-        frame.render_widget(Clear, frame.area()); //this clears the entire screen and anything already drawn
-        let popup_block = Block::default()
-            .title("Y/N")
-            .borders(Borders::NONE)
-            .style(Style::default().bg(Color::DarkGray));
-
-        let exit_text = Text::styled(
-            "Would you like to output the buffer as json? (y/n)",
-            Style::default().fg(Color::Red),
-        );
-        // the `trim: false` will stop the text from being cut off when over the edge of the block
-        let exit_paragraph = Paragraph::new(exit_text)
-            .block(popup_block)
-            .wrap(Wrap { trim: false });
-
-        let area = centered_rect(60, 25, frame.area());
-        frame.render_widget(exit_paragraph, area);
-    }
+    f.render_widget(tabs_list, area);
 }
 
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    // Cut the given rectangle into three vertical pieces
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
-        ])
-        .split(r);
+// Draw the main panel for displaying detailed content based on active tab
+fn draw_main_panel(f: &mut Frame, app: &App, area: Rect) {
+    let content = match app.current_screen {
+        CurrentScreen::Main => match app.active_tab {
+            ActiveTab::Network => format!("Network Connect Details: {}", app.config_value),
+            ActiveTab::Accounts => {
+                // Display account information dynamically
+                if app.accounts.is_empty() {
+                    "No accounts found".to_string()
+                } else {
+                    let account_details: Vec<String> = app.accounts.iter()
+                        .map(|(addr, balance)| format!("Address: {}, Balance: {} SOL", addr, balance))
+                        .collect();
+                    account_details.join("\n")
+                }
+            },
+            ActiveTab::Transactions => "Transaction Details".to_string(),
+            ActiveTab::Actions => "Action Commands (keygen, config, etc.)".to_string(),
+        },
+        CurrentScreen::Editing => format!("Editing Mode: {:?}", app.currently_editing),
+        CurrentScreen::Exiting => "Are you sure you want to exit? (y/n)".to_string(),
+        _ => "Solana CLI Interface".to_string(),
+    };
 
-    // Then cut the middle vertical piece into three width-wise pieces
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
-        ])
-        .split(popup_layout[1])[1] // Return the middle chunk
+    let main_block = Paragraph::new(content)
+        .block(Block::default().title("Main Panel").borders(Borders::ALL));
+
+    f.render_widget(main_block, area);
+}
+
+// Draw the command log at the bottom
+fn draw_command_log(f: &mut Frame, app: &App, area: Rect) {
+    let log_content = if app.command_input.is_empty() {
+        "Command Log: No recent commands".to_string()
+    } else {
+        format!("Last Command: {}", app.command_input)
+    };
+
+    let command_log = Paragraph::new(log_content)
+        .style(Style::default().fg(Color::Gray))
+        .block(Block::default().title("Command Log").borders(Borders::ALL));
+
+    f.render_widget(command_log, area);
 }

@@ -39,14 +39,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
-    if let Ok(do_print) = res {
-        if do_print {
-            app.print_json()?;
-        }
-    } else if let Err(err) = res {
-        println!("{err:?}");
-    }
-
     Ok(())
 }
 
@@ -83,7 +75,9 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                         return Ok(true); // Confirm exit
                     }
                     KeyCode::Char('n') | KeyCode::Char('q') => {
-                        return Ok(false); // Cancel exit
+                        // Return to the main screen and clear editing state
+                        app.current_screen = CurrentScreen::Main;
+                        app.currently_editing = None;
                     }
                     _ => {}
                 },
@@ -102,8 +96,11 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                                 }
                                 CurrentlyEditing::SolAmount => {
                                     // Perform an action or save and return to the main screen
-                                    app.save_key_value(); // or any other method to save the state
+                                    // app.save_key_value(); // or any other method to save the state
                                     app.current_screen = CurrentScreen::Main;
+                                }
+                                CurrentlyEditing::None => {
+                                    println!("none!");
                                 }
                             }
                         }
@@ -126,6 +123,9 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                                     let mut chars: Vec<char> = amount_str.chars().collect();
                                     chars.pop();
                                     app.sol_amount = chars.iter().collect::<String>().parse().unwrap_or(0.0);
+                                }
+                                CurrentlyEditing::None => {
+                                    println!("none!");
                                 }
                             }
                         }
@@ -157,6 +157,8 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                                         app.sol_amount = app.sol_amount * 10.0 + digit as f64;
                                     }
                                 }
+                                CurrentlyEditing::None => {
+                                println!("none!");}
                             }
                         }
                     }
