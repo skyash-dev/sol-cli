@@ -75,6 +75,7 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                         return Ok(true); // Confirm exit
                     }
                     KeyCode::Char('n') | KeyCode::Char('q') => {
+                        
                         // Return to the main screen and clear editing state
                         app.current_screen = CurrentScreen::Main;
                         app.currently_editing = None;
