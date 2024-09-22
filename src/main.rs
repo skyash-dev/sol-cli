@@ -55,18 +55,12 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
             }
             match app.current_screen {
                 CurrentScreen::Main => match key.code {
-                    KeyCode::Char('e') => {
-                        // Switch to editing screen
-                        app.current_screen = CurrentScreen::Editing;
-                        app.currently_editing = Some(CurrentlyEditing::PublicKey);
+                    KeyCode::Tab => {
+                        app.toggle_tab();
                     }
                     KeyCode::Char('q') => {
                         // Switch to exiting screen
                         app.current_screen = CurrentScreen::Exiting;
-                    }
-                    KeyCode::Char('c') => {
-                        // Handle command input or toggle command input mode if needed
-                        app.current_screen = CurrentScreen::CommandLog;
                     }
                     _ => {}
                 },
@@ -74,7 +68,7 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                     KeyCode::Char('y') => {
                         return Ok(true); // Confirm exit
                     }
-                    KeyCode::Char('n') | KeyCode::Char('q') => {
+                    KeyCode::Char('n') => {
                         
                         // Return to the main screen and clear editing state
                         app.current_screen = CurrentScreen::Main;
@@ -85,25 +79,8 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                 CurrentScreen::Editing => match key.code {
                     KeyCode::Enter => {
                         if let Some(editing) = &app.currently_editing {
-                            match editing {
-                                CurrentlyEditing::PublicKey => {
-                                    app.currently_editing = Some(CurrentlyEditing::KeypairFile);
-                                }
-                                CurrentlyEditing::KeypairFile => {
-                                    app.currently_editing = Some(CurrentlyEditing::Config);
-                                }
-                                CurrentlyEditing::Config => {
-                                    app.currently_editing = Some(CurrentlyEditing::SolAmount);
-                                }
-                                CurrentlyEditing::SolAmount => {
-                                    // Perform an action or save and return to the main screen
-                                    // app.save_key_value(); // or any other method to save the state
-                                    app.current_screen = CurrentScreen::Main;
-                                }
-                                CurrentlyEditing::None => {
-                                    println!("none!");
-                                }
-                            }
+                            app.current_screen = CurrentScreen::Main;
+                            app.currently_editing = CurrentlyEditing::None; 
                         }
                     }
                     KeyCode::Backspace => {
@@ -136,10 +113,7 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                         app.current_screen = CurrentScreen::Main;
                         app.currently_editing = None;
                     }
-                    KeyCode::Tab => {
-                        // Cycle through editing fields
-                        app.toggle_editing();
-                    }
+                    
                     KeyCode::Char(value) => {
                         if let Some(editing) = &app.currently_editing {
                             match editing {
@@ -165,13 +139,7 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                     }
                     _ => {}
                 },
-                CurrentScreen::CommandLog => match key.code {
-                    KeyCode::Esc => {
-                        // Return to main screen from the command log screen
-                        app.current_screen = CurrentScreen::Main;
-                    }
-                    _ => {}
-                },
+                
                 _ => {}
             }
         }

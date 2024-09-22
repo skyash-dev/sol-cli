@@ -70,12 +70,16 @@ impl App {
 
     pub fn get_balance(&self) {
         // Logic to get and display the balance using the RPC client
+
+        self.currently_editing = CurrentlyEditing::PublicKey;
         println!("Fetching wallet balance...");
         // Example: Fetch balance using `self.rpc_client` and display it
     }
 
     pub fn get_account_details(&self) {
         // Logic to get and display the balance using the RPC client
+        
+        self.currently_editing = CurrentlyEditing::PublicKey;
         println!("Fetching wallet balance...");
         // Example: Fetch balance using `self.rpc_client` and display it
     }
@@ -88,9 +92,28 @@ impl App {
 
     pub fn transfer_sol(&mut self) {
         // Logic for transferring SOL based on input values
+        
+        self.currently_editing = CurrentlyEditing::SolAmount;
         println!("Transferring {} SOL to address...", self.sol_amount);
         // Example: Call Solana RPC methods for transferring SOL
-        self.sol_amount = 0.0;
+    }
+
+    pub fn set_config(&mut self) {
+        println!("set the network and config");
+    }
+
+    pub fn toggle_tab(&mut self){
+        match self.active_tab{
+            ActiveTab::Account => {
+                self.active_tab = ActiveTab::Transactions;
+            }
+            ActiveTab::Transactions => {
+                self.active_tab = ActiveTab::Actions;
+            }
+            Active::Actions => {
+                self.active_tab = ActiveTab::Account;
+            }
+        }
     }
 }
 
